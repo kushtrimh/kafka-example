@@ -5,17 +5,23 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 
 import java.util.Optional;
 
 /**
  * @author Kushtrim Hajrizi
  */
+@Component
 public class JSONConverter {
 
     private static final Logger log = LoggerFactory.getLogger(JSONConverter.class);
 
     private ObjectMapper mapper;
+
+    public JSONConverter() {
+        this(PropertyNamingStrategy.SNAKE_CASE);
+    }
 
     public JSONConverter(PropertyNamingStrategy namingStrategy) {
         mapper = new ObjectMapper();
@@ -35,7 +41,7 @@ public class JSONConverter {
         try {
             return Optional.of(mapper.readValue(content, cls));
         } catch (JsonProcessingException e) {
-            log.error("Could not convert to JSON");
+            log.error("Could not convert to JSON", e);
         }
         return Optional.empty();
     }

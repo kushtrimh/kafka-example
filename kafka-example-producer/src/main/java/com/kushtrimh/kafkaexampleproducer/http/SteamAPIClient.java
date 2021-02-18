@@ -1,10 +1,14 @@
 package com.kushtrimh.kafkaexampleproducer.http;
 
-import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import com.kushtrimh.kafkaexampleproducer.http.entity.PlayerCountResponse;
 import com.kushtrimh.kafkaexampleproducer.json.JSONConverter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -12,13 +16,18 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
  * @author Kushtrim Hajrizi
  */
+@Component
 public class SteamAPIClient {
+
+    private static final Logger log = LoggerFactory.getLogger(SteamAPIClient.class);
 
     @Value("${steam.stats.uri}")
     private String steamStatsURI;
@@ -26,33 +35,43 @@ public class SteamAPIClient {
     private HttpClient client;
     private JSONConverter jsonConverter;
 
-    public static SteamAPIClient newInstanceWithDefaults() {
+    @Autowired
+    public SteamAPIClient(JSONConverter jsonConverter) {
+        this.jsonConverter = jsonConverter;
         ExecutorService executorService = Executors.newFixedThreadPool(8);
-        HttpClient client = HttpClient.newBuilder()
+        this.client = HttpClient.newBuilder()
                 .executor(executorService)
                 .connectTimeout(Duration.ofMillis(5000))
                 .build();
-        JSONConverter jsonConverter = new JSONConverter(PropertyNamingStrategy.LOWER_CASE);
-        return new SteamAPIClient(client, jsonConverter);
     }
 
-    public static SteamAPIClient newInstance(HttpClient client, JSONConverter jsonConverter) {
-        return new SteamAPIClient(client, jsonConverter);
-    }
-
-    private SteamAPIClient(HttpClient client, JSONConverter jsonConverter) {
+    public SteamAPIClient(HttpClient client, JSONConverter jsonConverter) {
         this.client = client;
         this.jsonConverter = jsonConverter;
     }
 
-    public PlayerCountResponse getPlayerCount(String appId) {
+    public Optional<PlayerCountResponse> getPlayerCount(String appId) {
         var request = HttpRequest.newBuilder(buildURI(steamStatsURI, Map.of("appid", appId)))
                 .GET()
                 .build();
-        client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
-                .thenApply(response -> jsonConverter.toJSON(PlayerCountResponse.class));
-        // TODO: When response is received process it and send to the Kafka consumer
-        return new PlayerCountResponse(); // Temporary
+        try {
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            return jsonConverter.fromJSON(response.body(), PlayerCountResponse.class);
+        } catch (IOException | InterruptedException e) {
+            log.error("Could not make request to retrieve player count", e);
+        }
+        return Optional.empty();
+    }
+
+    public CompletableFuture<Optional<PlayerCountResponse>> getPlayerCountAsync(String appId) {
+        var request = HttpRequest.newBuilder(buildURI(steamStatsURI, Map.of("appid", appId)))
+                .GET()
+                .build();
+        return client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+                .thenApplyAsync(response -> {
+                    log.info("Response received: {} - {}", response.statusCode(), response.body());
+                    return jsonConverter.fromJSON(response.body(), PlayerCountResponse.class);
+                });
     }
 
     private URI buildURI(String baseUri, Map<String, String> queryParams) {

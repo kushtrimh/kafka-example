@@ -1,0 +1,12 @@
+{
+  "games": [
+    {
+      "name": "Counter-Strike: Global Offensive",
+      "app_id": "730"
+    },
+    {
+      "name": "Crusader Kings III",
+      "app_id": "1158310"
+    }
+  ]
+}
