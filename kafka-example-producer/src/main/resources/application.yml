@@ -3,6 +3,9 @@ spring:
     name: kafka-example-producer
 server:
   port: 8180
+kafka:
+  bootstrap-server: localhost:9092
+  topic: player_count_stats
 steam:
   stats:
     uri: https://api.steampowered.com/ISteamUserStats/GetNumberOfCurrentPlayers/v1/
