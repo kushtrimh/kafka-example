@@ -48,7 +48,7 @@ public class StatsManager {
 
     private void sendMessageToKafka(PlayerCountResponse response, Game game) {
         String appId = game.getAppId();
-        PlayerCountRequest request = new PlayerCountRequest(
+        var request = new PlayerCountRequest(
                 response.getResponse().getPlayerCount(),
                 appId,
                 game.getName());
