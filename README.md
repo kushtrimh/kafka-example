@@ -19,4 +19,5 @@ To create the topic, run the command below. (Please make sure you're running the
 
 ```kafka-topics.bat --bootstrap-server 127.0.0.1:9092 --create --topic player_count_stats --partition 3```
 
-Now the producer application is ready.
+After the topic is created, run the `kafka-example-producer` project, and after it the `kafka-example-consumer`.
+The producer should start getting the information of the specified games in `games.json (Producer config file)`, query the current player count for those games and send the result to the consumer. In order to keep this example simple and more focused on Kafka, the consumer will simply log the result.
