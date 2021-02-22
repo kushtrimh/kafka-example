@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: kafka-example-producer
+server:
+  port: 8181
+kafka:
+  bootstrap-server: localhost:9092
+  topic: player_count_stats
+  group-id: player_count_stats_group
+  offset-reset-config: earliest
